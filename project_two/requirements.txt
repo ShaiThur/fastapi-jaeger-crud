@@ -1,0 +1,13 @@
+fastapi
+fastapi[standard]
+py-automapper
+opentelemetry-api
+opentelemetry-sdk
+opentelemetry-instrumentation-sqlalchemy
+opentelemetry-instrumentation-fastapi
+opentelemetry-instrumentation-logging
+opentelemetry-exporter-otlp-proto-http
+opentelemetry-instrumentation-httpx
+opentelemetry-exporter-jaeger
+sqlalchemy
+asyncpg

@@ -1,0 +1,76 @@
+version: "3.9"
+
+services:
+  service_a:
+    container_name: service_a
+    build:
+      dockerfile: project_one/Dockerfile
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    ports:
+      - "8000:8000"
+
+  service_b:
+    container_name: service_b
+    build:
+      dockerfile: project_two/Dockerfile
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    ports:
+      - "8001:8000"
+
+    depends_on:
+      - postgres
+
+  postgres:
+    image: postgres:latest
+    container_name: postgres
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: artur123
+      POSTGRES_DB: aiplatform
+    ports:
+      - "5433:5432"
+    volumes:
+#      - postgres_data:/var/lib/postgresql/data
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 30s
+      timeout: 30s
+      retries: 3
+
+  cassandra:
+    image: cassandra:4.1.4
+
+  cassandra-schema:
+    image: jaegertracing/jaeger-cassandra-schema:1.57.0
+    depends_on:
+      - cassandra
+
+  jaeger-collector:
+    image: jaegertracing/jaeger-collector:1.57.0
+    command:
+      - "--cassandra.keyspace=jaeger_v1_dc1"
+      - "--cassandra.servers=cassandra"
+      - "--collector.otlp.enabled=true"
+    environment:
+      - SAMPLING_CONFIG_TYPE=adaptive
+    ports:
+      - "4318:4318"
+    restart: on-failure
+    depends_on:
+      - cassandra-schema
+
+  jaeger-query:
+    image: jaegertracing/jaeger-query:1.57.0
+    command:
+      - "--cassandra.keyspace=jaeger_v1_dc1"
+      - "--cassandra.servers=cassandra"
+    ports:
+      - "16686:16686"
+      - "16687:16687"
+    restart: on-failure
+    depends_on:
+      - cassandra-schema
